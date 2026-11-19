@@ -9,6 +9,7 @@ Fuentes (todas las formulas llevan su referencia al imprimirse):
       Ec. 18.1-18.4 (p.395-396) torneado | 18.7-18.11 (p.404-405) taladrado
       Ec. 18.13-18.20 (p.410-412) fresado | Ec. 20.1 (p.464), 20.2 y Fig. 20.2 (p.465)
   [S] Sandvik Coromant, catálogo Turning tools, Cutting data p. A278-A281 (vc)
+  [M] Machinery's Handbook 27th Ed., Tablas 10-14 (fresado) y 17-21 (taladrado)
   [K] Kalpakjian & Schmid, Manufacturing Engineering and Technology, 8a ed. SI
       Ec. 21.30 (p.664) Rt = f^2/8R | Def. de Rt, sec. 33.3 (p.1071)
 
@@ -158,6 +159,172 @@ EJ_VC_TORNEADO = ["180          vc directa [m/min]",
                   "01.2         vc de la tabla Sandvik (pregunta el avance)",
                   "01.2 250     vc propia, el código queda como referencia",
                   "?            ver tabla de vc"]
+
+
+# ---------------------------------------------------------------------------
+# Machinery's Handbook 27th Ed. - velocidades de fresado y taladrado.
+# Datos originales en fpm y 0.001 in/diente; se convierten al mostrar.
+# ---------------------------------------------------------------------------
+FPM = 0.3048          # ft/min -> m/min
+MIL = 0.0254          # 0.001 in -> mm
+
+# (código, material, HB, HSS fpm (texto), cara metal duro recubierto Opt (f, s), Avg (f, s), fuente)
+VC_FRESADO = [
+    ("F01", "Acero C bajo 1010-1026 (1018, 1020)", "125-175", "110", (39, 215), (20, 405), "T.11 p.1045"),
+    ("F02", "Acero C medio 1027-1052 (1045)", "175-225", "85", (39, 185), (20, 350), "T.11 p.1046"),
+    ("F03", "Acero C medio 1027-1052 (1045)", "225-275", "70", (39, 185), (20, 350), "T.11 p.1046"),
+    ("F04", "Acero C alto 1055-1095", "175-225", "75", (39, 195), (20, 365), "T.11 p.1046"),
+    ("F05", "Acero aleado cementación 4320, 8620", "175-225", "90", (39, 295), (20, 475), "T.11 p.1047"),
+    ("F06", "Acero aleado 4140, 4340", "175-225", "75 (65)", (39, 295), (20, 475), "T.11 p.1047"),
+    ("F07", "Acero aleado 4140, 4340", "225-275", "60", (39, 200), (20, 320), "T.11 p.1047"),
+    ("F08", "Acero aleado 4140, 4340", "275-325", "50 (40)", (39, 190), (20, 305), "T.11 p.1047"),
+    ("F09", "Inox ferrítico 405-446 (430)", "135-185", "90", (39, 210), (20, 385), "T.13 p.1050"),
+    ("F10", "Inox austenítico 201-348 (304)", "135-185", "75", None, None, "T.13 p.1050"),
+    ("F11", "Inox austenítico 309-330 (316)", "135-185", "70", None, None, "T.13 p.1050"),
+    ("F12", "Inox martensítico 403-501 (410)", "135-175", "95", None, None, "T.13 p.1050"),
+    ("F13", "Fundición gris ASTM clase 20", "120-150", "100", (39, 285), (20, 535), "T.14 p.1052"),
+    ("F14", "Fundición gris ASTM clase 25", "160-200", "80", (39, 285), (20, 535), "T.14 p.1052"),
+    ("F15", "Fundición gris ASTM clase 30-40", "190-220", "70", (39, 285), (20, 535), "T.14 p.1052"),
+    ("F16", "Fundición gris ASTM clase 45-50", "220-260", "50", (39, 185), (20, 395), "T.14 p.1052"),
+    ("F17", "Fundición maleable ferrítica", "110-160", "110", (39, 225), (20, 520), "T.14 p.1052"),
+    ("F18", "Fundición nodular ferrítica 60-40-18", "140-190", "75", (39, 120), (20, 255), "T.14 p.1052"),
+]
+# Aluminio (T.10 p.1044): sin columna HSS única; cara con metal duro SIN recubrir.
+VC_FRESADO_AL = ("F19", "Aluminio forjado (6061, 5000-7000) y fundido en arena/coquilla", "-",
+                 (15, 165), (8, 850), (39, 755), (20, 1720), "T.10 p.1044")
+
+VC_TALADRADO = [   # (código, material, HB, HSS fpm (texto), fuente)
+    ("T01", "Acero C bajo 1010-1026 (1018, 1020)", "125-175", "90", "T.17 p.1061"),
+    ("T02", "Acero C medio 1027-1052 (1045)", "175-225", "75", "T.17 p.1061"),
+    ("T03", "Acero C medio 1027-1052 (1045)", "225-275", "60", "T.17 p.1061"),
+    ("T04", "Acero C alto 1055-1095", "175-225", "70", "T.17 p.1062"),
+    ("T05", "Acero aleado cementación 4320, 8620", "175-225", "70", "T.17 p.1062"),
+    ("T06", "Acero aleado 4140, 4340", "175-225", "75 (60)", "T.17 p.1062"),
+    ("T07", "Acero aleado 4140, 4340", "225-275", "60 (50)", "T.17 p.1062"),
+    ("T08", "Inox ferrítico 405-434 (430)", "135-185", "65", "T.19 p.1067"),
+    ("T09", "Inox austenítico 201-348 (304)", "135-185", "55", "T.19 p.1067"),
+    ("T10", "Inox austenítico 302B-316 (316)", "135-185", "50", "T.19 p.1067"),
+    ("T11", "Inox martensítico 403-501 (410)", "135-175", "75", "T.19 p.1067"),
+    ("T12", "Fundición gris ASTM clase 20", "120-150", "100", "T.20 p.1068"),
+    ("T13", "Fundición gris ASTM clase 30-40", "190-220", "80", "T.20 p.1068"),
+    ("T14", "Fundición nodular ferrítica 60-40-18", "140-190", "100", "T.20 p.1068"),
+    ("T15", "Aluminio forjado (6061...) y fundido, CD", "-", "400", "T.21 p.1070"),
+]
+
+
+def _m(fpm):
+    return round(fpm * FPM)
+
+
+def _fz(mil):
+    return round(mil * MIL, 2)
+
+
+def _hss(txt):
+    """'75 (65)' -> (22.9, '75 (65) fpm')"""
+    base = float(txt.split()[0])
+    return round(base * FPM, 1)
+
+
+def ayuda_vc_fresado():
+    L = ["Cód.  Material                                    HB          HSS   Metal duro recub. (planeado)",
+         "                                                                vc    Opt: fz / vc   Avg: fz / vc"]
+    for c, mat, hb, hss, opt, avg, src in VC_FRESADO:
+        md = (f"{_fz(opt[0]):.2f} / {_m(opt[1]):<5} {_fz(avg[0]):.2f} / {_m(avg[1])}" if opt else "sin dato")
+        par = "*" if "(" in hss else " "
+        L.append(f"{c}   {mat:<44}{hb:<10}{_hss(hss):>5.0f}{par}  {md}")
+    c, mat, hb, ho, ha, fo, fa, src = VC_FRESADO_AL
+    L.append(f"{c}   {mat[:44]:<44}{'':<10}{'(1)':>6}  {_fz(fo[0]):.2f} / {_m(fo[1]):<5} {_fz(fa[0]):.2f} / {_m(fa[1])}  (2)")
+    L += ["",
+          "vc en m/min, fz en mm/diente. Convertido de fpm y 0.001 in/diente.",
+          "HSS: columna 'HSS Speed'; avance con Tabla 15a del MH.",
+          "Metal duro: fresado frontal, fresa Ø8\" 10 dientes, ángulo de posición 15°, ap 0,1\",",
+          "  ae 6\" (ae/D = 3/4), vida ≈ 45 min. Otras condiciones: Tablas 15d y 15e del MH.",
+          "* Valor entre paréntesis en la tabla original; se usa el principal.",
+          "(1) Aluminio HSS (fresa de punta): Opt fz 0,38 / vc 50, Avg fz 0,20 / vc 259.",
+          "(2) Aluminio: metal duro SIN recubrir.",
+          "Fuente: Machinery's Handbook 27th Ed., Tablas 10, 11, 13 y 14 (p. 1044-1052)."]
+    mostrar_caja("vc fresado - Machinery's Handbook 27th Ed.", L)
+
+
+def ayuda_vc_taladrado():
+    L = ["Cód.  Material                                    HB        vc HSS [m/min]"]
+    for c, mat, hb, hss, src in VC_TALADRADO:
+        par = f"   (tabla: {hss} fpm)" if "(" in hss else ""
+        L.append(f"{c}   {mat:<44}{hb:<10}{_hss(hss):>6.0f}{par}")
+    L += ["",
+          "Columna 'HSS Speed' (velocidades tradicionales del MH, broca HSS). Avance:",
+          "sección 'Feed Rates for Drilling and Reaming' del MH.",
+          "Valor entre paréntesis en la tabla original: se usa el principal.",
+          "Fuente: Machinery's Handbook 27th Ed., Tablas 17, 19, 20 y 21 (p. 1061-1070)."]
+    mostrar_caja("vc taladrado HSS - Machinery's Handbook 27th Ed.", L)
+
+
+def vc_codigo_fresado(s):
+    partes = s.upper().split()
+    cod = partes[0] if partes else ""
+    fila = next((r for r in VC_FRESADO if r[0] == cod), None)
+    al = VC_FRESADO_AL if cod == VC_FRESADO_AL[0] else None
+    if not fila and not al:
+        return None
+    if len(partes) == 2:
+        try:
+            vc = float(partes[1])
+        except ValueError:
+            return None
+        mat = fila[1] if fila else al[1]
+        VC_ORIGEN["txt"] = f"vc = {vc:g} m/min (valor propio)    [ref. MH 27 {cod}: {mat}]"
+        print(f"  -> vc = {vc:g} m/min")
+        return vc
+    if fila:
+        c, mat, hb, hss, opt, avg, src = fila
+        ops = [("HSS", _hss(hss), None)]
+        if opt:
+            ops += [("metal duro Opt", _m(opt[1]), _fz(opt[0])), ("metal duro Avg", _m(avg[1]), _fz(avg[0]))]
+    else:
+        c, mat, hb, ho, ha, fo, fa, src = al
+        ops = [("HSS Opt", _m(ho[1]), _fz(ho[0])), ("HSS Avg", _m(ha[1]), _fz(ha[0])),
+               ("metal duro s/recubr. Opt", _m(fo[1]), _fz(fo[0])), ("metal duro s/recubr. Avg", _m(fa[1]), _fz(fa[0]))]
+    print(f"  {c} {mat} {hb} HB:")
+    for i, (n, v, fz) in enumerate(ops, 1):
+        print(f"    {i}) {n:<26} vc = {v:g} m/min" + (f"   (fz {fz:.2f} mm/diente)" if fz else ""))
+    k = _inp("  Columna [1]: ").strip() or "1"
+    i = int(k) - 1 if k.isdigit() and 1 <= int(k) <= len(ops) else 0
+    n, vc, fz = ops[i]
+    VC_ORIGEN["txt"] = (f"vc = {vc:g} m/min    [MH 27 {src}: {c} {mat}, {n}"
+                        + (f", fz {fz:.2f} mm/diente" if fz else "") + "]")
+    print(f"  -> vc = {vc:g} m/min")
+    return vc
+
+
+def vc_codigo_taladrado(s):
+    partes = s.upper().split()
+    cod = partes[0] if partes else ""
+    fila = next((r for r in VC_TALADRADO if r[0] == cod), None)
+    if not fila:
+        return None
+    c, mat, hb, hss, src = fila
+    if len(partes) == 2:
+        try:
+            vc = float(partes[1])
+        except ValueError:
+            return None
+        VC_ORIGEN["txt"] = f"vc = {vc:g} m/min (valor propio)    [ref. MH 27 {src}: {c} {mat}: {_hss(hss):g}]"
+    else:
+        vc = _hss(hss)
+        VC_ORIGEN["txt"] = f"vc = {vc:g} m/min    [MH 27 {src}: {c} {mat}, {hb} HB, broca HSS]"
+    print(f"  -> vc = {vc:g} m/min")
+    return vc
+
+
+EJ_VC_FRESADO = ["25           vc directa [m/min]",
+                 "F02          vc de la tabla MH (pregunta HSS o metal duro)",
+                 "F02 120      vc propia, el código queda como referencia",
+                 "?            ver tabla de vc"]
+EJ_VC_TALADRADO = ["20           vc directa [m/min]",
+                   "T02          vc de la tabla MH (broca HSS)",
+                   "T02 25       vc propia, el código queda como referencia",
+                   "?            ver tabla de vc"]
 
 
 def ayuda_sin_tabla():
@@ -605,10 +772,12 @@ def planeado(out):
     pos = elegir("Posición de la fresa", {"1": "Centrada (Fig. 18.22a)",
                                           "2": "Desplazada a un lado (Fig. 18.22b)"}, "1")
     a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 200)
+    vc = pedir("vc [m/min]", 200, ayuda=ayuda_vc_fresado,
+               ejemplos=EJ_VC_FRESADO, resolver=vc_codigo_fresado)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.sec("CORTE")
+    nota_vc(out)
     N, vc = rpm(out, vc, D, nmax, "18.13")
     fz = bloque_rugosidad(out, vc, "fz", "mm/diente")
     out.p("  Groover: Ec. 20.1 aplicable al planeado con placas usando fz.")
@@ -646,11 +815,13 @@ def periferico(out):
     d = pedir("Profundidad de corte d [mm]", 3)
     L = pedir("Longitud L [mm]", 150)
     a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 30)
+    vc = pedir("vc [m/min]", 30, ayuda=ayuda_vc_fresado,
+               ejemplos=EJ_VC_FRESADO, resolver=vc_codigo_fresado)
     nmax = pedir_nmax()
     fz = pedir("Avance por diente fz [mm/diente]", 0.1)
     pas = pedir("Cantidad de pasadas", 1)
     out.sec("CORTE")
+    nota_vc(out)
     N, vc = rpm(out, vc, D, nmax, "18.13")
     out.sec("TIEMPO")
     fr = N * z * fz
@@ -670,10 +841,12 @@ def taladrado(out):
     th = pedir("Ángulo de punta θ [°] (? = valor típico)", 118, ayuda=ayuda_punta)
     tipo = elegir("Agujero", {"1": "Pasante", "2": "Ciego"}, "1")
     t = pedir("Espesor t [mm]" if tipo == "1" else "Profundidad a diámetro pleno d [mm]", 20)
-    vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 25)
+    vc = pedir("vc [m/min]", 25, ayuda=ayuda_vc_taladrado,
+               ejemplos=EJ_VC_TALADRADO, resolver=vc_codigo_taladrado)
     nmax = pedir_nmax()
     f = pedir("Avance f [mm/rev]", 0.15)
     out.sec("CORTE")
+    nota_vc(out)
     N, vc = rpm(out, vc, D, nmax, "18.7")
     out.sec("TIEMPO")
     fr = N * f

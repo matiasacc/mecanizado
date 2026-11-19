@@ -171,6 +171,9 @@ MECANIZADO - tiempos y rugosidad   19/11/2026
   - vc recomendada (escribir `?` en vc de torneado)
   - ap y fn recomendados por placa, p. A282 en adelante → `datos/sandvik_ap_fn.json` (extracción automática, ~95 % de las placas). Se usa escribiendo la designación con geometría, ej. `CNMG120408-PM`.
 
+- Machinery's Handbook 27th Ed.
+  - vc de fresado (Tablas 10, 11, 13, 14; p. 1044–1052) y de taladrado HSS (Tablas 17, 19–21; p. 1061–1070). Convertidas de fpm y 0.001 in a m/min y mm. Códigos F01… y T01… (escribir `?` en vc).
+
 ## Supuestos (marcados con * en la salida)
 
 - Fig. 20.2 digitalizada (±0,02). Fuera de rango (≈9–137 m/min) se toma el valor del extremo.
