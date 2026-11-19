@@ -356,26 +356,84 @@ def bloque_rugosidad(out, vc, nombre_f="f", unidad_f="mm/rev"):
 # ---------------------------------------------------------------------------
 # Operaciones
 # ---------------------------------------------------------------------------
+def n_silencioso(vc, D, nmax):
+    N = 1000 * vc / (math.pi * D)
+    if nmax and N > nmax:
+        return nmax, math.pi * D * nmax / 1000, True
+    return N, vc, False
+
+
 def cilindrado(out):
     out.p("\n=== TORNEADO - CILINDRADO ===")
-    D = pedir("Diámetro inicial Do [mm]", 50)
+    Do = pedir("Diámetro inicial Do [mm]", 50)
+    while True:
+        Df = pedir("Diámetro final Df [mm]", Do - 4)
+        if Df < Do:
+            break
+        print("    -> Df debe ser menor que Do")
     L = pedir("Longitud de corte L [mm]", 100)
     a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min]", 200, ayuda=ayuda_vc_torneado,
-               ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
     nmax = pedir_nmax()
-    pas = pedir("Cantidad de pasadas", 1)
-    out.p("\n  CORTE")
+    prof = (Do - Df) / 2
+    sob = pedir("Sobrematerial de acabado, radial [mm] (0 = todo en una pasada)",
+                min(0.5, prof), permitir_cero=True)
+    sob = prof if (sob == 0 or sob > prof) else sob
+    desb = prof - sob
+
+    pasadas = []                      # (tipo, D antes, ap, n, f, fr, Tm)
+    if desb > 1e-9:
+        print("\n  -- Desbaste --")
+        apmax = pedir("ap máx por pasada [mm]", 2)
+        fd = pedir("Avance de desbaste f [mm/rev]", 0.3)
+        vcd = pedir("vc desbaste [m/min]", 200, ayuda=ayuda_vc_torneado,
+                    ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
+        nd = math.ceil(desb / apmax - 1e-9)
+        ap = desb / nd
+        out.p(f"\n  DESBASTE: {desb:g} mm radiales en {nd} pasada(s) de ap = {ap:.3f} mm")
+        nota_vc(out)
+        D = Do
+        for i in range(nd):
+            if i == 0:
+                out.f("Df pasada", "= D − 2·ap", f"{D:g} − 2·{ap:.3f}",
+                      f"{D - 2 * ap:.3f} mm", f"{SRC_G}, Ec. 18.2")
+                N, vcr = rpm(out, vcd, D, nmax, "18.1")
+            else:
+                N, vcr, _ = n_silencioso(vcd, D, nmax)
+            fr = N * fd
+            tm = (L + a) / fr
+            pasadas.append(("desbaste", D, ap, N, fd, fr, tm))
+            D -= 2 * ap
+        out.p("  n se recalcula en el diámetro de cada pasada (Ec. 18.1 con D de la pasada).")
+        Dac = D
+    else:
+        Dac = Do
+
+    print("\n  -- Acabado --")
+    vca = pedir("vc acabado [m/min]", 200, ayuda=ayuda_vc_torneado,
+                ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
+    out.p(f"\n  ACABADO: ap = {sob:.3f} mm, de Ø{Dac:.3f} a Ø{Df:g}")
     nota_vc(out)
-    N, vc = rpm(out, vc, D, nmax, "18.1")
-    f = bloque_rugosidad(out, vc)
+    N, vca = rpm(out, vca, Dac, nmax, "18.1")
+    f = bloque_rugosidad(out, vca)
     fr = N * f
-    out.p("\n  TIEMPO")
+    out.p("\n  TIEMPO (acabado)")
     out.f("fr", "= n · f", f"{N:.0f} · {f:.3f}", f"{fr:.1f} mm/min", f"{SRC_G}, Ec. 18.3")
-    Tm = (L + a) / fr * pas
-    out.f("Tm", "= (L + a) / fr · pasadas", f"({L:g} + {a:g}) / {fr:.1f} · {pas:g}",
-          f"{Tm:.3f} min = {Tm * 60:.1f} s", f"{SRC_G}, Ec. 18.4")
-    return Tm
+    tm = (L + a) / fr
+    out.f("Tm", "= (L + a) / fr", f"({L:g} + {a:g}) / {fr:.1f}",
+          f"{tm:.3f} min = {tm * 60:.1f} s", f"{SRC_G}, Ec. 18.4")
+    pasadas.append(("acabado", Dac, sob, N, f, fr, tm))
+
+    out.p("\n  PASADAS")
+    out.p(f"  {'#':>2}  {'tipo':<9}{'Ø antes':>9}{'ap':>7}{'n':>7}{'f':>7}{'fr':>8}{'Tm [s]':>9}")
+    for i, (t, D, ap, N, ff, fr, tm) in enumerate(pasadas, 1):
+        out.p(f"  {i:>2}  {t:<9}{D:>9.2f}{ap:>7.2f}{N:>7.0f}{ff:>7.3f}{fr:>8.1f}{tm * 60:>9.1f}")
+    T = sum(p[6] for p in pasadas)
+    out.p(f"  {'Total':<40}{T:>8.3f} min = {T * 60:.1f} s")
+    if nmax and any(abs(p[3] - nmax) < 1e-6 for p in pasadas):
+        out.nota(f"Pasadas con n = {nmax:.0f} rpm: limitadas por n máx (vc real menor).")
+    out.p("  n calculada con el diámetro antes de cada pasada (Ec. 18.1, Groover usa Do).")
+    out.p("  No incluye retornos en rápido ni cambios de herramienta.")
+    return T
 
 
 def refrentado(out):
