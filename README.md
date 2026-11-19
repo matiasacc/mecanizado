@@ -9,6 +9,8 @@ python mecanizado.py
 Operaciones: torneado (cilindrado, refrentado), fresado (planeado con placas, periférico) y taladrado.
 Cada resultado muestra fórmula, valores reemplazados y fuente.
 
+Corridas: cada operación queda guardada como corrida de la pieza actual (`p` cambia de pieza). `r` muestra el resumen con subtotal por pieza, `e` elimina una corrida y `g` guarda en `.txt` solo las corridas que quedan.
+
 ## Ejemplo
 
 Cilindrado de Ø50 a Ø40 × 100 mm en acero 01.2 (C 0,25–0,55 %), desbaste con CNMG120408-PM, acabado con CNMG120408-PF a Ra 1,6 µm y vc propia de 280 m/min.
