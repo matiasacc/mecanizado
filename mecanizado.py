@@ -162,6 +162,34 @@ def ayuda_sin_tabla():
     print("  (sin tabla de vc cargada para esta operación: usar catálogo del fabricante)")
 
 
+# ---------------------------------------------------------------------------
+# Sandvik ap / fn recomendados por placa (datos/sandvik_ap_fn.json)
+# ---------------------------------------------------------------------------
+def _cargar_placas():
+    import json, os
+    ruta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "datos", "sandvik_ap_fn.json")
+    try:
+        with open(ruta, encoding="utf-8") as fh:
+            return json.load(fh)["placas"]
+    except Exception:
+        return {}
+
+
+PLACAS = _cargar_placas()
+PLACA = {"fila": None, "nombre": None}   # ultima placa reconocida
+
+
+def buscar_placa(s):
+    k = "".join(s.upper().split())
+    fila = PLACAS.get(k)
+    if fila:
+        PLACA["fila"], PLACA["nombre"] = fila, k
+        ap, fn = fila["ap"], fila["fn"]
+        print(f"  -> {k}: ap rec {ap[0]:g} ({ap[1]:g}-{ap[2]:g}) mm | "
+              f"fn rec {fn[0]:g} ({fn[1]:g}-{fn[2]:g}) mm/rev  [Sandvik, pág. PDF {fila['pdf']}]")
+    return fila
+
+
 # Sandvik "Turning tools", Code keys - General turning inserts, pos. 7 (pag. PDF 661)
 RADIOS_ISO = [("01", 0.1), ("02", 0.2), ("04", 0.4), ("05", 0.5), ("08", 0.8),
               ("10", 1.0), ("12", 1.2), ("15", 1.5), ("16", 1.6), ("24", 2.4), ("32", 3.2)]
@@ -186,12 +214,16 @@ def radio_por_iso(s):
         print(f"    -> código de radio {cod} no está en la tabla")
         return None
     print(f"  -> {m.group(1).upper()} {m.group(2)} {m.group(3).upper()} {cod}: RE = {r:g} mm")
+    PLACA["fila"] = None
+    if not buscar_placa(s) and "-" in s:
+        print("    (placa no encontrada en la tabla de ap/fn de Sandvik)")
     return r
 
 
-EJ_RADIO = ["0.8          radio en mm",
-            "CNMG120408   designación ISO de la placa (toma el 08 -> 0,8 mm)",
-            "?            ver códigos de radio"]
+EJ_RADIO = ["0.8             radio en mm",
+            "CNMG120408      designación ISO (toma el 08 -> 0,8 mm)",
+            "CNMG120408-PF   con geometría: además muestra ap y fn de Sandvik",
+            "?               ver códigos de radio"]
 
 
 def ayuda_punta():
@@ -310,6 +342,7 @@ def rpm(out, vc, D, nmax, ec):
 def bloque_rugosidad(out, vc, nombre_f="f", unidad_f="mm/rev"):
     """Pide radio, material y dato de rugosidad. Devuelve el avance."""
     print("\n  -- Rugosidad --")
+    PLACA["fila"] = None
     re = pedir("Radio de punta rε [mm]", 0.8, ayuda=ayuda_radio,
                ejemplos=EJ_RADIO, resolver=radio_por_iso)
     mat = MATERIALES[elegir("Material", MATERIALES, "1")][0]
@@ -339,6 +372,12 @@ def bloque_rugosidad(out, vc, nombre_f="f", unidad_f="mm/rev"):
         out.f("r_ai", "Fig. 20.2", f"{mat}, vc = {vc:g} m/min",
               f"{r:.2f}", f"{SRC_G}, Fig. 20.2")
 
+    if PLACA["fila"] and unidad_f == "mm/rev":
+        fn = PLACA["fila"]["fn"]
+        out.p(f"  Placa {PLACA['nombre']}: fn rec {fn[0]:g}, rango {fn[1]:g}-{fn[2]:g} mm/rev "
+              f"[Sandvik pág. PDF {PLACA['fila']['pdf']}]")
+        if not fn[1] <= f <= fn[2]:
+            out.nota(f"f = {f:.3f} fuera del rango de la placa ({fn[1]:g}-{fn[2]:g}) - a criterio del usuario.")
     Ri = f ** 2 / (32 * re) * 1000
     Rt = f ** 2 / (8 * re) * 1000
     out.f("Ri (ideal)", "= f² / (32·rε)", f"{f:.3f}² / (32·{re:g})",
@@ -385,8 +424,23 @@ def cilindrado(out):
     pasadas = []                      # (tipo, D antes, ap, n, f, fr, Tm)
     if desb > 1e-9:
         print("\n  -- Desbaste --")
-        apmax = pedir("ap máx por pasada [mm]", 2)
-        fd = pedir("Avance de desbaste f [mm/rev]", 0.3)
+        print("    ej.: CNMG120408-PM   (Enter = sin placa)")
+        pl = None
+        while True:
+            sp = input("  Placa de desbaste (ISO con geometría): ").strip()
+            if not sp:
+                break
+            pl = buscar_placa(sp)
+            if pl:
+                break
+            print("    -> no encontrada en la tabla de Sandvik (Enter para seguir sin placa)")
+        apmax = pedir("ap máx por pasada [mm]", pl["ap"][0] if pl else 2)
+        fd = pedir("Avance de desbaste f [mm/rev]", pl["fn"][0] if pl else 0.3)
+        if pl:
+            out.p(f"  Placa desbaste {PLACA['nombre']}: ap {pl['ap'][1]:g}-{pl['ap'][2]:g} mm, "
+                  f"fn {pl['fn'][1]:g}-{pl['fn'][2]:g} mm/rev [Sandvik pág. PDF {pl['pdf']}]")
+            if not (pl["ap"][1] <= apmax <= pl["ap"][2]) or not (pl["fn"][1] <= fd <= pl["fn"][2]):
+                out.nota("ap o f de desbaste fuera del rango de la placa - a criterio del usuario.")
         vcd = pedir("vc desbaste [m/min]", 200, ayuda=ayuda_vc_torneado,
                     ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
         nd = math.ceil(desb / apmax - 1e-9)
@@ -417,6 +471,10 @@ def cilindrado(out):
     nota_vc(out)
     N, vca = rpm(out, vca, Dac, nmax, "18.1")
     f = bloque_rugosidad(out, vca)
+    if PLACA["fila"]:
+        apr = PLACA["fila"]["ap"]
+        if not apr[1] <= sob <= apr[2]:
+            out.nota(f"ap acabado = {sob:g} mm fuera del rango de la placa ({apr[1]:g}-{apr[2]:g}) - a criterio del usuario.")
     fr = N * f
     out.p("\n  TIEMPO (acabado)")
     out.f("fr", "= n · f", f"{N:.0f} · {f:.3f}", f"{fr:.1f} mm/min", f"{SRC_G}, Ec. 18.3")

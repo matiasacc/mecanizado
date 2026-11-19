@@ -19,6 +19,7 @@ Cada resultado muestra fórmula, valores reemplazados y fuente.
 
 - Sandvik Coromant, catálogo *Turning tools*, Cutting data p. A278–A281
   - vc recomendada (escribir `?` en vc de torneado)
+  - ap y fn recomendados por placa, p. A282 en adelante → `datos/sandvik_ap_fn.json` (extracción automática, ~95 % de las placas). Se usa escribiendo la designación con geometría, ej. `CNMG120408-PM`.
 
 ## Supuestos (marcados con * en la salida)
 
