@@ -152,8 +152,50 @@ def vc_por_codigo(s):
     return vc
 
 
+EJ_VC_TORNEADO = ["180          vc directa [m/min]",
+                  "01.2         vc de la tabla Sandvik (pregunta el avance)",
+                  "01.2 250     vc propia, el código queda como referencia",
+                  "?            ver tabla de vc"]
+
+
 def ayuda_sin_tabla():
     print("  (sin tabla de vc cargada para esta operación: usar catálogo del fabricante)")
+
+
+# Sandvik "Turning tools", Code keys - General turning inserts, pos. 7 (pag. PDF 661)
+RADIOS_ISO = [("01", 0.1), ("02", 0.2), ("04", 0.4), ("05", 0.5), ("08", 0.8),
+              ("10", 1.0), ("12", 1.2), ("15", 1.5), ("16", 1.6), ("24", 2.4), ("32", 3.2)]
+
+
+def ayuda_radio():
+    print("\n  Radio de punta RE - código ISO de la placa, posición 7")
+    print("  (Sandvik 'Turning tools', Code keys, General turning inserts)")
+    print("    " + "   ".join(f"{c} = {r:g}" for c, r in RADIOS_ISO))
+    print("  Ej.: CNMG 12 04 08 -> RE = 0,8 mm\n")
+
+
+def radio_por_iso(s):
+    """Acepta la designacion ISO completa (CNMG120408, CNMG 12 04 08, DCMT11T304...)."""
+    import re
+    m = re.match(r"^([A-Za-z]{4})\s*(\d{2})\s*([0-9Tt]\d)\s*(\d{2})", s)
+    if not m:
+        return None
+    cod = m.group(4)
+    r = dict(RADIOS_ISO).get(cod)
+    if r is None:
+        print(f"    -> código de radio {cod} no está en la tabla")
+        return None
+    print(f"  -> {m.group(1).upper()} {m.group(2)} {m.group(3).upper()} {cod}: RE = {r:g} mm")
+    return r
+
+
+EJ_RADIO = ["0.8          radio en mm",
+            "CNMG120408   designación ISO de la placa (toma el 08 -> 0,8 mm)",
+            "?            ver códigos de radio"]
+
+
+def ayuda_punta():
+    print("  Groover SI, sec. 18.3 (p. 450): valor típico del ángulo de punta = 118°\n")
 
 
 SRC_G = "Groover SI 2016"
@@ -192,25 +234,30 @@ class Salida:
         self.p(f"  * {txt}")
 
 
-def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None):
+def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None,
+          ejemplos=None, resolver=None):
+    """ayuda: funcion que se llama con '?'. resolver: convierte texto especial
+    (codigo de tabla, designacion ISO...) en numero; devuelve None si no aplica."""
     d = f" [{default}]" if default is not None else ""
-    if ayuda:
-        d += "  <- ? = tabla | código (01.2) | código + valor (01.2 250)"
+    if ejemplos:
+        print("    ej.: " + ejemplos[0])
+        for e in ejemplos[1:]:
+            print("          " + e)
     while True:
         s = input(f"  {txt}{d}: ").strip().replace(",", ".")
         if s == "?" and ayuda:
             ayuda()
             continue
-        if ayuda is ayuda_vc_torneado:
-            v = vc_por_codigo(s)
+        if resolver and s:
+            v = resolver(s)
             if v is not None:
                 return v
         if s == "" and default is not None:
-            return float(default) if default != "" else None
+            return float(default)
         try:
             v = float(s)
         except ValueError:
-            print("    -> número inválido")
+            print("    -> no reconocido" + (" (? = ayuda)" if ayuda else ""))
             continue
         if v < minimo or (v == 0 and not permitir_cero):
             print("    -> fuera de rango")
@@ -261,7 +308,8 @@ def rpm(out, vc, D, nmax, ec):
 def bloque_rugosidad(out, vc, nombre_f="f", unidad_f="mm/rev"):
     """Pide radio, material y dato de rugosidad. Devuelve el avance."""
     print("\n  -- Rugosidad --")
-    re = pedir("Radio de punta rε [mm]", 0.8)
+    re = pedir("Radio de punta rε [mm]", 0.8, ayuda=ayuda_radio,
+               ejemplos=EJ_RADIO, resolver=radio_por_iso)
     mat = MATERIALES[elegir("Material", MATERIALES, "1")][0]
     modo = elegir("Dato", {"1": "Ra objetivo [µm]",
                            "2": "Rz objetivo [µm] *",
@@ -313,7 +361,8 @@ def cilindrado(out):
     D = pedir("Diámetro inicial Do [mm]", 50)
     L = pedir("Longitud de corte L [mm]", 100)
     a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min]", 200, ayuda=ayuda_vc_torneado)
+    vc = pedir("vc [m/min]", 200, ayuda=ayuda_vc_torneado,
+               ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.p("\n  CORTE")
@@ -334,7 +383,8 @@ def refrentado(out):
     Do = pedir("Diámetro exterior Do [mm]", 50)
     Di = pedir("Diámetro interior Di [mm] (0 = macizo)", 0, permitir_cero=True)
     a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc en Do [m/min]", 200, ayuda=ayuda_vc_torneado)
+    vc = pedir("vc en Do [m/min]", 200, ayuda=ayuda_vc_torneado,
+               ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.p("\n  CORTE")
@@ -424,7 +474,7 @@ def periferico(out):
 def taladrado(out):
     out.p("\n=== TALADRADO ===")
     D = pedir("Diámetro de broca D [mm]", 10)
-    th = pedir("Ángulo de punta θ [°]", 118)
+    th = pedir("Ángulo de punta θ [°] (? = valor típico)", 118, ayuda=ayuda_punta)
     tipo = elegir("Agujero", {"1": "Pasante", "2": "Ciego"}, "1")
     t = pedir("Espesor t [mm]" if tipo == "1" else "Profundidad a diámetro pleno d [mm]", 20)
     vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 25)
