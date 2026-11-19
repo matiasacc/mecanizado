@@ -297,6 +297,8 @@ class Salida:
     def titulo(self, t):
         self.cerrar()
         self._emitir("")
+        if getattr(self, "pieza", None):
+            t = f"{t}  ·  {self.pieza}"
         self._emitir("═" * 4 + " " + t + " " + "═" * max(4, 56 - len(t)))
 
     def sec(self, t):
@@ -697,45 +699,115 @@ OPERACIONES = {
 }
 
 
+def construir_resumen(corridas):
+    """Lineas del recuadro de resumen, agrupado por pieza."""
+    L = []
+    piezas = []
+    for c in corridas:
+        if c["pieza"] not in piezas:
+            piezas.append(c["pieza"])
+    tot = 0
+    for p in piezas:
+        L.append(p)
+        sub = 0
+        for i, c in enumerate(corridas, 1):
+            if c["pieza"] == p:
+                L.append(f"  {i:>2}. {c['nombre']:<32}{c['tm']:8.3f} min  {c['tm'] * 60:7.1f} s")
+                sub += c["tm"]
+        L.append(f"      {'Subtotal ' + p:<32}{sub:8.3f} min  {sub * 60:7.1f} s")
+        L.append("")
+        tot += sub
+    if len(piezas) > 1:
+        L.append(f"      {'TOTAL':<32}{tot:8.3f} min  {tot * 60:7.1f} s")
+    return L
+
+
+def resumen(out, corridas):
+    if not corridas:
+        print("  (no hay corridas)")
+        return
+    out.sec("RESUMEN - tiempo de corte, sin carga/descarga ni cambios")
+    for l in construir_resumen(corridas):
+        out.p("  " + l)
+    out.cerrar()
+
+
+def guardar(corridas):
+    if not corridas:
+        print("  (no hay corridas para guardar)")
+        return
+    nom = f"mecanizado_{datetime.datetime.now():%Y%m%d_%H%M%S}.txt"
+    L = [f"MECANIZADO - tiempos y rugosidad   {datetime.date.today():%d/%m/%Y}"]
+    for c in corridas:
+        L += c["lineas"]
+    L.append("")
+    L += ["  " + l for l in caja("RESUMEN - tiempo de corte, sin carga/descarga ni cambios",
+                                 construir_resumen(corridas))]
+    with open(nom, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(L) + "\n")
+    print(f"  Guardado: {nom}  ({len(corridas)} corrida(s))")
+
+
+def eliminar(corridas):
+    if not corridas:
+        print("  (no hay corridas)")
+        return
+    for i, c in enumerate(corridas, 1):
+        print(f"    {i}) [{c['pieza']}] {c['nombre']:<32}{c['tm'] * 60:7.1f} s")
+    k = _inp("  Número de corrida a eliminar (Enter = cancelar): ").strip()
+    if not (k.isdigit() and 1 <= int(k) <= len(corridas)):
+        return
+    c = corridas[int(k) - 1]
+    if _inp(f"  ¿Eliminar {k}) [{c['pieza']}] {c['nombre']}? (s/N): ").strip().lower() == "s":
+        corridas.pop(int(k) - 1)
+        print("  Eliminada.")
+
+
 def main():
     out = Salida()
-    hechas = []
-    out.p(f"MECANIZADO - tiempos y rugosidad   {datetime.date.today():%d/%m/%Y}")
+    corridas = []                 # {pieza, nombre, tm, lineas}
+    pieza = "Pieza 1"
+    guardado = True
+    print(f"MECANIZADO - tiempos y rugosidad   {datetime.date.today():%d/%m/%Y}")
     while True:
         print("\n" + "-" * 60)
+        print(f"  Pieza actual: {pieza}      Corridas: {len(corridas)}")
         for k, (n, _) in OPERACIONES.items():
             print(f"  {k}) {n}")
-        print("  r) Resumen    g) Guardar .txt    q) Salir")
+        print("  p) Pieza nueva / cambiar   r) Resumen   e) Eliminar corrida")
+        print("  g) Guardar .txt            q) Salir")
         op = _inp("  > ").strip().lower()
         if op in OPERACIONES:
             nombre, fn = OPERACIONES[op]
+            out.pieza = pieza
+            i0 = len(out.lineas)
             try:
                 tm = fn(out)
                 out.cerrar()
-                hechas.append((nombre, tm))
+                corridas.append({"pieza": pieza, "nombre": nombre, "tm": tm,
+                                 "lineas": out.lineas[i0:]})
+                guardado = False
             except (KeyboardInterrupt, EOFError):
                 out.buf = None
                 print("\n  (operación cancelada)")
+        elif op == "p":
+            n = _inp(f"  Nombre de la pieza [{pieza}]: ").strip()
+            if n:
+                pieza = n
         elif op == "r":
-            resumen(out, hechas)
+            resumen(out, corridas)
+        elif op == "e":
+            n0 = len(corridas)
+            eliminar(corridas)
+            guardado = guardado and len(corridas) == n0
         elif op == "g":
-            resumen(out, hechas)
-            nom = f"mecanizado_{datetime.datetime.now():%Y%m%d_%H%M}.txt"
-            with open(nom, "w", encoding="utf-8") as fh:
-                fh.write("\n".join(out.lineas) + "\n")
-            print(f"  Guardado: {nom}")
+            guardar(corridas)
+            guardado = True
         elif op in ("q", "salir"):
+            if not guardado and corridas:
+                if _inp("  Hay corridas sin guardar. ¿Salir igual? (s/N): ").strip().lower() != "s":
+                    continue
             break
-
-
-def resumen(out, hechas):
-    out.sec("RESUMEN - tiempo de corte, sin carga/descarga ni cambios")
-    tot = 0
-    for i, (n, t) in enumerate(hechas, 1):
-        out.p(f"  {i}. {n:<32}{t:8.3f} min  {t * 60:7.1f} s")
-        tot += t
-    out.p(f"  {'TOTAL':<35}{tot:8.3f} min  {tot * 60:7.1f} s")
-    out.cerrar()
 
 
 if __name__ == "__main__":
