@@ -260,7 +260,7 @@ def caja(titulo, lineas, ancho_min=0):
     while lineas and not lineas[-1].strip():
         lineas.pop()
     w = max([len(l) for l in lineas] + [len(titulo) + 3, ancho_min])
-    r = ["┌─ " + titulo + " " + "─" * (w - len(titulo) - 2) + "┐"]
+    r = ["┌─ " + titulo + " " + "─" * (w - len(titulo) - 1) + "┐"]
     r += ["│ " + l.ljust(w) + " │" for l in lineas]
     r.append("└" + "─" * (w + 2) + "┘")
     return r
