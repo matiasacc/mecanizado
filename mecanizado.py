@@ -239,6 +239,8 @@ def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None,
     """ayuda: funcion que se llama con '?'. resolver: convierte texto especial
     (codigo de tabla, designacion ISO...) en numero; devuelve None si no aplica."""
     d = f" [{default}]" if default is not None else ""
+    if ayuda and "?" not in txt:
+        d += "  (? = lista)"
     if ejemplos:
         print("    ej.: " + ejemplos[0])
         for e in ejemplos[1:]:
