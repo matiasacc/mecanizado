@@ -112,7 +112,22 @@ VC_ORIGEN = {"txt": None}   # ultima vc tomada de la tabla (para la salida)
 
 
 def vc_por_codigo(s):
-    """Si s es un codigo CMC de la tabla, devuelve la vc elegida; si no, None."""
+    """Si s es un codigo CMC de la tabla, devuelve la vc elegida; si no, None.
+    'codigo valor' (ej. '30.11 1000'): usa el valor propio y deja el codigo como referencia."""
+    partes = s.split()
+    if len(partes) == 2:
+        fila = next(((g, c, m, v) for g, fe, fs in VC_TORNEADO for c, m, v in fs if c == partes[0]), None)
+        try:
+            vc = float(partes[1])
+        except ValueError:
+            vc = 0
+        if fila and vc > 0:
+            g, c, m, v = fila
+            VC_ORIGEN["txt"] = (f"vc = {vc:g} m/min (valor propio). Ref. Sandvik p. A278-A281: "
+                                f"{c} {' '.join(m.split())}, {g.split(' - ')[1]}: {v}")
+            print(f"  -> vc = {vc:g} m/min  (tabla para {c}: {v})")
+            return vc
+        return None
     filas = [(g, fe, c, m, v) for g, fe, fs in VC_TORNEADO for c, m, v in fs if c == s]
     if not filas:
         return None
@@ -180,7 +195,7 @@ class Salida:
 def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None):
     d = f" [{default}]" if default is not None else ""
     if ayuda:
-        d += "  <- ? = ver tabla, o escribí el código (ej. 01.2)"
+        d += "  <- ? = tabla | código (01.2) | código + valor (01.2 250)"
     while True:
         s = input(f"  {txt}{d}: ").strip().replace(",", ".")
         if s == "?" and ayuda:
