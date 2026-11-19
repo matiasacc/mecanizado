@@ -100,12 +100,14 @@ VC_TORNEADO = [
 
 
 def ayuda_vc_torneado():
-    print("\n  vc recomendada [m/min] - Sandvik 'Turning tools', p. A278-A281 (con refrigerante)")
+    L = []
     for grupo, feeds, filas in VC_TORNEADO:
-        print(f"\n  {grupo}   ({feeds})")
+        L.append(f"{grupo}   ({feeds})")
         for cmc, mat, vc in filas:
-            print(f"    {cmc:<6}{mat:<38}{vc}")
-    print("\n  A mayor avance, menor vc. Otras calidades: ver catálogo.\n")
+            L.append(f"  {cmc:<6}{mat:<38}{vc}")
+        L.append("")
+    L.append("Con refrigerante. A mayor avance, menor vc. Otras calidades: ver catálogo.")
+    mostrar_caja("vc recomendada [m/min] - Sandvik Turning tools, p. A278-A281", L)
 
 
 VC_ORIGEN = {"txt": None}   # ultima vc tomada de la tabla (para la salida)
@@ -123,8 +125,8 @@ def vc_por_codigo(s):
             vc = 0
         if fila and vc > 0:
             g, c, m, v = fila
-            VC_ORIGEN["txt"] = (f"vc = {vc:g} m/min (valor propio). Ref. Sandvik p. A278-A281: "
-                                f"{c} {' '.join(m.split())}, {g.split(' - ')[1]}: {v}")
+            VC_ORIGEN["txt"] = (f"vc = {vc:g} m/min (valor propio)    "
+                                f"[ref. Sandvik p. A278-A281: {c}, {g.split(' - ')[1]}: {v}]")
             print(f"  -> vc = {vc:g} m/min  (tabla para {c}: {v})")
             return vc
         return None
@@ -134,7 +136,7 @@ def vc_por_codigo(s):
     if len(filas) > 1:
         for i, (g, fe, c, m, v) in enumerate(filas, 1):
             print(f"    {i}) {c} {m}  {v}")
-        k = input("  Cuál [1]: ").strip() or "1"
+        k = _inp("  Cuál [1]: ").strip() or "1"
         filas = [filas[int(k) - 1]] if k.isdigit() and 1 <= int(k) <= len(filas) else filas[:1]
     g, fe, c, m, v = filas[0]
     base = v.split(" (")[0]
@@ -144,10 +146,10 @@ def vc_por_codigo(s):
     else:
         fns = fe.replace("fn ", "").replace(" mm/rev", "").split(" / ")
         print(f"  {c} {m.strip()}:  " + "   ".join(f"{i}) fn {fn} -> {x:g}" for i, (fn, x) in enumerate(zip(fns, vals), 1)))
-        k = input("  Avance de referencia [2]: ").strip() or "2"
+        k = _inp("  Avance de referencia [2]: ").strip() or "2"
         i = int(k) - 1 if k in ("1", "2", "3") else 1
         vc, col = vals[i], f"fn {fns[i]} mm/rev"
-    VC_ORIGEN["txt"] = f"vc = {vc:g} m/min de Sandvik Turning tools p. A278-A281: {c} {' '.join(m.split())}, {g.split(' - ')[1]}, {col}"
+    VC_ORIGEN["txt"] = f"vc = {vc:g} m/min    [Sandvik p. A278-A281: {c}, {g.split(' - ')[1]}, {col}]"
     print(f"  -> vc = {vc:g} m/min")
     return vc
 
@@ -196,10 +198,11 @@ RADIOS_ISO = [("01", 0.1), ("02", 0.2), ("04", 0.4), ("05", 0.5), ("08", 0.8),
 
 
 def ayuda_radio():
-    print("\n  Radio de punta RE - código ISO de la placa, posición 7")
-    print("  (Sandvik 'Turning tools', Code keys, General turning inserts)")
-    print("    " + "   ".join(f"{c} = {r:g}" for c, r in RADIOS_ISO))
-    print("  Ej.: CNMG 12 04 08 -> RE = 0,8 mm\n")
+    mostrar_caja("Radio de punta RE - código ISO, posición 7 (Sandvik, Code keys)", [
+        "   ".join(f"{c} = {r:g}" for c, r in RADIOS_ISO[:6]),
+        "   ".join(f"{c} = {r:g}" for c, r in RADIOS_ISO[6:]) + "   [mm]",
+        "",
+        "Ej.: CNMG 12 04 08 -> RE = 0,8 mm"])
 
 
 def radio_por_iso(s):
@@ -227,7 +230,7 @@ EJ_RADIO = ["0.8             radio en mm",
 
 
 def ayuda_punta():
-    print("  Groover SI, sec. 18.3 (p. 450): valor típico del ángulo de punta = 118°\n")
+    mostrar_caja("Ángulo de punta de broca", ["Valor típico: 118°   [Groover SI, sec. 18.3, p. 450]"])
 
 
 SRC_G = "Groover SI 2016"
@@ -249,13 +252,64 @@ def r_ai(vc, mat):
 # ---------------------------------------------------------------------------
 # Entrada / salida
 # ---------------------------------------------------------------------------
-class Salida:
-    def __init__(self):
-        self.lineas = []
+def caja(titulo, lineas, ancho_min=0):
+    """Devuelve las lineas de un recuadro con titulo."""
+    lineas = [l[2:] if l.startswith("  ") else l for l in lineas]
+    while lineas and not lineas[0].strip():
+        lineas.pop(0)
+    while lineas and not lineas[-1].strip():
+        lineas.pop()
+    w = max([len(l) for l in lineas] + [len(titulo) + 3, ancho_min])
+    r = ["┌─ " + titulo + " " + "─" * (w - len(titulo) - 2) + "┐"]
+    r += ["│ " + l.ljust(w) + " │" for l in lineas]
+    r.append("└" + "─" * (w + 2) + "┘")
+    return r
 
-    def p(self, txt=""):
+
+def mostrar_caja(titulo, lineas):
+    print()
+    for l in caja(titulo, lineas):
+        print("  " + l)
+    print()
+
+
+class Salida:
+    """Todo lo que es resultado va a un recuadro; cada pedido de dato cierra el
+    recuadro abierto (si tiene contenido) para que quede antes de la pregunta."""
+
+    def __init__(self):
+        global _OUT
+        self.lineas = []
+        self.buf = None
+        self.tit = None
+        _OUT = self
+
+    def _emitir(self, txt):
         print(txt)
         self.lineas.append(txt)
+
+    def p(self, txt=""):
+        if self.buf is not None:
+            self.buf.append(txt)
+        else:
+            self._emitir(txt)
+
+    def titulo(self, t):
+        self.cerrar()
+        self._emitir("")
+        self._emitir("═" * 4 + " " + t + " " + "═" * max(4, 56 - len(t)))
+
+    def sec(self, t):
+        self.cerrar()
+        self.buf, self.tit = [], t
+
+    def cerrar(self):
+        if self.buf is None or not any(l.strip() for l in self.buf):
+            return
+        self._emitir("")
+        for l in caja(self.tit, self.buf):
+            self._emitir("  " + l)
+        self.buf, self.tit = None, None
 
     def f(self, nombre, simb, sust, res, fuente):
         self.p(f"  {nombre:<14}{simb}")
@@ -266,10 +320,24 @@ class Salida:
         self.p(f"  * {txt}")
 
 
+_OUT = None
+
+
+def _inp(prompt):
+    _flush()
+    return input(prompt)
+
+
+def _flush():
+    if _OUT is not None:
+        _OUT.cerrar()
+
+
 def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None,
           ejemplos=None, resolver=None):
     """ayuda: funcion que se llama con '?'. resolver: convierte texto especial
     (codigo de tabla, designacion ISO...) en numero; devuelve None si no aplica."""
+    _flush()
     d = f" [{default}]" if default is not None else ""
     if ayuda and "?" not in txt:
         d += "  (? = lista)"
@@ -278,7 +346,7 @@ def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None,
         for e in ejemplos[1:]:
             print("          " + e)
     while True:
-        s = input(f"  {txt}{d}: ").strip().replace(",", ".")
+        s = _inp(f"  {txt}{d}: ").strip().replace(",", ".")
         if s == "?" and ayuda:
             ayuda()
             continue
@@ -300,11 +368,12 @@ def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None,
 
 
 def elegir(txt, opciones, default=None):
+    _flush()
     for k, v in opciones.items():
         print(f"    {k}) {v if isinstance(v, str) else v[1]}")
     d = f" [{default}]" if default else ""
     while True:
-        s = input(f"  {txt}{d}: ").strip().lower()
+        s = _inp(f"  {txt}{d}: ").strip().lower()
         if s == "" and default:
             s = default
         if s in opciones:
@@ -312,7 +381,7 @@ def elegir(txt, opciones, default=None):
 
 
 def pedir_nmax():
-    s = input("  n máx. de la máquina [rpm] (Enter = sin límite): ").strip()
+    s = _inp("  n máx. de la máquina [rpm] (Enter = sin límite): ").strip()
     try:
         return float(s.replace(",", ".")) if s else None
     except ValueError:
@@ -341,7 +410,7 @@ def rpm(out, vc, D, nmax, ec):
 # ---------------------------------------------------------------------------
 def bloque_rugosidad(out, vc, nombre_f="f", unidad_f="mm/rev"):
     """Pide radio, material y dato de rugosidad. Devuelve el avance."""
-    print("\n  -- Rugosidad --")
+    _flush(); print("\n  -- Rugosidad --")
     PLACA["fila"] = None
     re = pedir("Radio de punta rε [mm]", 0.8, ayuda=ayuda_radio,
                ejemplos=EJ_RADIO, resolver=radio_por_iso)
@@ -351,9 +420,14 @@ def bloque_rugosidad(out, vc, nombre_f="f", unidad_f="mm/rev"):
                            "3": f"Tengo el avance {nombre_f}"}, "1")
     r, extrap = r_ai(vc, mat)
 
-    out.p("\n  RUGOSIDAD")
     if modo == "1":
         ra_obj = pedir("Ra objetivo [µm]", 1.6)
+    elif modo == "2":
+        rz_obj = pedir("Rz objetivo [µm]", 6.3)
+    else:
+        f = pedir(f"Avance {nombre_f} [{unidad_f}]", 0.2)
+    out.sec("RUGOSIDAD")
+    if modo == "1":
         out.f("r_ai", "Fig. 20.2", f"{mat}, vc = {vc:g} m/min",
               f"{r:.2f}", f"{SRC_G}, Fig. 20.2")
         f = math.sqrt(32 * re * (ra_obj / r) / 1000)
@@ -361,14 +435,12 @@ def bloque_rugosidad(out, vc, nombre_f="f", unidad_f="mm/rev"):
               f"√(32·{re:g}·{ra_obj:g}/({r:.2f}·1000))",
               f"{f:.3f} {unidad_f}", f"{SRC_G}, Ec. 20.1 y 20.2 despejadas")
     elif modo == "2":
-        rz_obj = pedir("Rz objetivo [µm]", 6.3)
         f = math.sqrt(8 * re * rz_obj / 1000)
         out.f(f"{nombre_f} máx", "= √(8·rε·Rz/1000)",
               f"√(8·{re:g}·{rz_obj:g}/1000)",
               f"{f:.3f} {unidad_f}", f"{SRC_K}, Ec. 21.30 despejada")
         out.nota("Rz = Rt del perfil ideal (supuesto). Valor ideal, sin corrección por material.")
     else:
-        f = pedir(f"Avance {nombre_f} [{unidad_f}]", 0.2)
         out.f("r_ai", "Fig. 20.2", f"{mat}, vc = {vc:g} m/min",
               f"{r:.2f}", f"{SRC_G}, Fig. 20.2")
 
@@ -405,7 +477,7 @@ def n_silencioso(vc, D, nmax):
 
 
 def cilindrado(out):
-    out.p("\n=== TORNEADO - CILINDRADO ===")
+    out.titulo("TORNEADO - CILINDRADO")
     Do = pedir("Diámetro inicial Do [mm]", 50)
     while True:
         Df = pedir("Diámetro final Df [mm]", Do - 4)
@@ -423,11 +495,11 @@ def cilindrado(out):
 
     pasadas = []                      # (tipo, D antes, ap, n, f, fr, Tm)
     if desb > 1e-9:
-        print("\n  -- Desbaste --")
+        _flush(); print("\n  -- Desbaste --")
         print("    ej.: CNMG120408-PM   (Enter = sin placa)")
         pl = None
         while True:
-            sp = input("  Placa de desbaste (ISO con geometría): ").strip()
+            sp = _inp("  Placa de desbaste (ISO con geometría): ").strip()
             if not sp:
                 break
             pl = buscar_placa(sp)
@@ -436,17 +508,18 @@ def cilindrado(out):
             print("    -> no encontrada en la tabla de Sandvik (Enter para seguir sin placa)")
         apmax = pedir("ap máx por pasada [mm]", pl["ap"][0] if pl else 2)
         fd = pedir("Avance de desbaste f [mm/rev]", pl["fn"][0] if pl else 0.3)
-        if pl:
-            out.p(f"  Placa desbaste {PLACA['nombre']}: ap {pl['ap'][1]:g}-{pl['ap'][2]:g} mm, "
-                  f"fn {pl['fn'][1]:g}-{pl['fn'][2]:g} mm/rev [Sandvik pág. PDF {pl['pdf']}]")
-            if not (pl["ap"][1] <= apmax <= pl["ap"][2]) or not (pl["fn"][1] <= fd <= pl["fn"][2]):
-                out.nota("ap o f de desbaste fuera del rango de la placa - a criterio del usuario.")
+        nom_pl = PLACA["nombre"] if pl else None
         vcd = pedir("vc desbaste [m/min]", 200, ayuda=ayuda_vc_torneado,
                     ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
         nd = math.ceil(desb / apmax - 1e-9)
         ap = desb / nd
-        out.p(f"\n  DESBASTE: {desb:g} mm radiales en {nd} pasada(s) de ap = {ap:.3f} mm")
+        out.sec(f"DESBASTE: {desb:g} mm radiales en {nd} pasada(s) de ap = {ap:.3f} mm")
         nota_vc(out)
+        if pl:
+            out.p(f"  Placa {nom_pl}: ap {pl['ap'][1]:g}-{pl['ap'][2]:g} mm, "
+                  f"fn {pl['fn'][1]:g}-{pl['fn'][2]:g} mm/rev  [Sandvik pág. PDF {pl['pdf']}]")
+            if not (pl["ap"][1] <= ap <= pl["ap"][2]) or not (pl["fn"][1] <= fd <= pl["fn"][2]):
+                out.nota("ap o f de desbaste fuera del rango de la placa - a criterio del usuario.")
         D = Do
         for i in range(nd):
             if i == 0:
@@ -464,10 +537,10 @@ def cilindrado(out):
     else:
         Dac = Do
 
-    print("\n  -- Acabado --")
+    _flush(); print("\n  -- Acabado --")
     vca = pedir("vc acabado [m/min]", 200, ayuda=ayuda_vc_torneado,
                 ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
-    out.p(f"\n  ACABADO: ap = {sob:.3f} mm, de Ø{Dac:.3f} a Ø{Df:g}")
+    out.sec(f"ACABADO: ap = {sob:.3f} mm, de Ø{Dac:.3f} a Ø{Df:g}")
     nota_vc(out)
     N, vca = rpm(out, vca, Dac, nmax, "18.1")
     f = bloque_rugosidad(out, vca)
@@ -476,14 +549,14 @@ def cilindrado(out):
         if not apr[1] <= sob <= apr[2]:
             out.nota(f"ap acabado = {sob:g} mm fuera del rango de la placa ({apr[1]:g}-{apr[2]:g}) - a criterio del usuario.")
     fr = N * f
-    out.p("\n  TIEMPO (acabado)")
+    out.sec("TIEMPO (acabado)")
     out.f("fr", "= n · f", f"{N:.0f} · {f:.3f}", f"{fr:.1f} mm/min", f"{SRC_G}, Ec. 18.3")
     tm = (L + a) / fr
     out.f("Tm", "= (L + a) / fr", f"({L:g} + {a:g}) / {fr:.1f}",
           f"{tm:.3f} min = {tm * 60:.1f} s", f"{SRC_G}, Ec. 18.4")
     pasadas.append(("acabado", Dac, sob, N, f, fr, tm))
 
-    out.p("\n  PASADAS")
+    out.sec("PASADAS")
     out.p(f"  {'#':>2}  {'tipo':<9}{'Ø antes':>9}{'ap':>7}{'n':>7}{'f':>7}{'fr':>8}{'Tm [s]':>9}")
     for i, (t, D, ap, N, ff, fr, tm) in enumerate(pasadas, 1):
         out.p(f"  {i:>2}  {t:<9}{D:>9.2f}{ap:>7.2f}{N:>7.0f}{ff:>7.3f}{fr:>8.1f}{tm * 60:>9.1f}")
@@ -497,7 +570,7 @@ def cilindrado(out):
 
 
 def refrentado(out):
-    out.p("\n=== TORNEADO - REFRENTADO (n constante) ===")
+    out.titulo("TORNEADO - REFRENTADO (n constante)")
     Do = pedir("Diámetro exterior Do [mm]", 50)
     Di = pedir("Diámetro interior Di [mm] (0 = macizo)", 0, permitir_cero=True)
     a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
@@ -505,12 +578,12 @@ def refrentado(out):
                ejemplos=EJ_VC_TORNEADO, resolver=vc_por_codigo)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
-    out.p("\n  CORTE")
+    out.sec("CORTE")
     nota_vc(out)
     N, vc = rpm(out, vc, Do, nmax, "18.1")
     f = bloque_rugosidad(out, vc)
     fr = N * f
-    out.p("\n  TIEMPO")
+    out.sec("TIEMPO")
     out.f("fr", "= n · f", f"{N:.0f} · {f:.3f}", f"{fr:.1f} mm/min", f"{SRC_G}, Ec. 18.3")
     L = (Do - Di) / 2
     Tm = (L + a) / fr * pas
@@ -522,7 +595,7 @@ def refrentado(out):
 
 
 def planeado(out):
-    out.p("\n=== FRESADO - PLANEADO CON PLACAS ===")
+    out.titulo("FRESADO - PLANEADO CON PLACAS")
     D = pedir("Diámetro de fresa D [mm]", 63)
     z = pedir("Número de dientes nt", 5)
     w = pedir("Ancho de la pieza w [mm]", 40)
@@ -533,13 +606,13 @@ def planeado(out):
     vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 200)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
-    out.p("\n  CORTE")
+    out.sec("CORTE")
     N, vc = rpm(out, vc, D, nmax, "18.13")
     fz = bloque_rugosidad(out, vc, "fz", "mm/diente")
     out.p("  Groover: Ec. 20.1 aplicable al planeado con placas usando fz.")
     out.p("  No aplica a placas wiper. Supone todas las placas a igual altura.")
     fr = N * z * fz
-    out.p("\n  TIEMPO")
+    out.sec("TIEMPO")
     out.f("fr", "= n · nt · fz", f"{N:.0f} · {z:g} · {fz:.3f}",
           f"{fr:.1f} mm/min", f"{SRC_G}, Ec. 18.14")
     if pos == "1":
@@ -565,7 +638,7 @@ def planeado(out):
 
 
 def periferico(out):
-    out.p("\n=== FRESADO PERIFÉRICO (tangencial) ===")
+    out.titulo("FRESADO PERIFÉRICO (tangencial)")
     D = pedir("Diámetro de fresa D [mm]", 63)
     z = pedir("Número de dientes nt", 6)
     d = pedir("Profundidad de corte d [mm]", 3)
@@ -575,9 +648,9 @@ def periferico(out):
     nmax = pedir_nmax()
     fz = pedir("Avance por diente fz [mm/diente]", 0.1)
     pas = pedir("Cantidad de pasadas", 1)
-    out.p("\n  CORTE")
+    out.sec("CORTE")
     N, vc = rpm(out, vc, D, nmax, "18.13")
-    out.p("\n  TIEMPO")
+    out.sec("TIEMPO")
     fr = N * z * fz
     out.f("fr", "= n · nt · fz", f"{N:.0f} · {z:g} · {fz:g}", f"{fr:.1f} mm/min", f"{SRC_G}, Ec. 18.14")
     A = math.sqrt(d * (D - d))
@@ -590,7 +663,7 @@ def periferico(out):
 
 
 def taladrado(out):
-    out.p("\n=== TALADRADO ===")
+    out.titulo("TALADRADO")
     D = pedir("Diámetro de broca D [mm]", 10)
     th = pedir("Ángulo de punta θ [°] (? = valor típico)", 118, ayuda=ayuda_punta)
     tipo = elegir("Agujero", {"1": "Pasante", "2": "Ciego"}, "1")
@@ -598,9 +671,9 @@ def taladrado(out):
     vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 25)
     nmax = pedir_nmax()
     f = pedir("Avance f [mm/rev]", 0.15)
-    out.p("\n  CORTE")
+    out.sec("CORTE")
     N, vc = rpm(out, vc, D, nmax, "18.7")
-    out.p("\n  TIEMPO")
+    out.sec("TIEMPO")
     fr = N * f
     out.f("fr", "= n · f", f"{N:.0f} · {f:g}", f"{fr:.1f} mm/min", f"{SRC_G}, Ec. 18.8")
     A = 0.5 * D * math.tan(math.radians(90 - th / 2))
@@ -633,13 +706,15 @@ def main():
         for k, (n, _) in OPERACIONES.items():
             print(f"  {k}) {n}")
         print("  r) Resumen    g) Guardar .txt    q) Salir")
-        op = input("  > ").strip().lower()
+        op = _inp("  > ").strip().lower()
         if op in OPERACIONES:
             nombre, fn = OPERACIONES[op]
             try:
                 tm = fn(out)
+                out.cerrar()
                 hechas.append((nombre, tm))
             except (KeyboardInterrupt, EOFError):
+                out.buf = None
                 print("\n  (operación cancelada)")
         elif op == "r":
             resumen(out, hechas)
@@ -654,12 +729,13 @@ def main():
 
 
 def resumen(out, hechas):
-    out.p("\n=== RESUMEN (tiempo de corte, sin carga/descarga ni cambios) ===")
+    out.sec("RESUMEN - tiempo de corte, sin carga/descarga ni cambios")
     tot = 0
     for i, (n, t) in enumerate(hechas, 1):
         out.p(f"  {i}. {n:<32}{t:8.3f} min  {t * 60:7.1f} s")
         tot += t
     out.p(f"  {'TOTAL':<35}{tot:8.3f} min  {tot * 60:7.1f} s")
+    out.cerrar()
 
 
 if __name__ == "__main__":
