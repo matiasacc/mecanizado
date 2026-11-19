@@ -108,6 +108,35 @@ def ayuda_vc_torneado():
     print("\n  A mayor avance, menor vc. Otras calidades: ver catálogo.\n")
 
 
+VC_ORIGEN = {"txt": None}   # ultima vc tomada de la tabla (para la salida)
+
+
+def vc_por_codigo(s):
+    """Si s es un codigo CMC de la tabla, devuelve la vc elegida; si no, None."""
+    filas = [(g, fe, c, m, v) for g, fe, fs in VC_TORNEADO for c, m, v in fs if c == s]
+    if not filas:
+        return None
+    if len(filas) > 1:
+        for i, (g, fe, c, m, v) in enumerate(filas, 1):
+            print(f"    {i}) {c} {m}  {v}")
+        k = input("  Cuál [1]: ").strip() or "1"
+        filas = [filas[int(k) - 1]] if k.isdigit() and 1 <= int(k) <= len(filas) else filas[:1]
+    g, fe, c, m, v = filas[0]
+    base = v.split(" (")[0]
+    vals = [float(x) for x in base.split("-")]
+    if len(vals) == 1:
+        vc, col = vals[0], fe
+    else:
+        fns = fe.replace("fn ", "").replace(" mm/rev", "").split(" / ")
+        print(f"  {c} {m.strip()}:  " + "   ".join(f"{i}) fn {fn} -> {x:g}" for i, (fn, x) in enumerate(zip(fns, vals), 1)))
+        k = input("  Avance de referencia [2]: ").strip() or "2"
+        i = int(k) - 1 if k in ("1", "2", "3") else 1
+        vc, col = vals[i], f"fn {fns[i]} mm/rev"
+    VC_ORIGEN["txt"] = f"vc = {vc:g} m/min de Sandvik Turning tools p. A278-A281: {c} {' '.join(m.split())}, {g.split(' - ')[1]}, {col}"
+    print(f"  -> vc = {vc:g} m/min")
+    return vc
+
+
 def ayuda_sin_tabla():
     print("  (sin tabla de vc cargada para esta operación: usar catálogo del fabricante)")
 
@@ -151,12 +180,16 @@ class Salida:
 def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None):
     d = f" [{default}]" if default is not None else ""
     if ayuda:
-        d += "  <- escribí ? para ver vc típicas"
+        d += "  <- ? = ver tabla, o escribí el código (ej. 01.2)"
     while True:
         s = input(f"  {txt}{d}: ").strip().replace(",", ".")
         if s == "?" and ayuda:
             ayuda()
             continue
+        if ayuda is ayuda_vc_torneado:
+            v = vc_por_codigo(s)
+            if v is not None:
+                return v
         if s == "" and default is not None:
             return float(default) if default != "" else None
         try:
@@ -188,6 +221,12 @@ def pedir_nmax():
         return float(s.replace(",", ".")) if s else None
     except ValueError:
         return None
+
+
+def nota_vc(out):
+    if VC_ORIGEN["txt"]:
+        out.p("  " + VC_ORIGEN["txt"])
+        VC_ORIGEN["txt"] = None
 
 
 def rpm(out, vc, D, nmax, ec):
@@ -263,6 +302,7 @@ def cilindrado(out):
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.p("\n  CORTE")
+    nota_vc(out)
     N, vc = rpm(out, vc, D, nmax, "18.1")
     f = bloque_rugosidad(out, vc)
     fr = N * f
@@ -283,6 +323,7 @@ def refrentado(out):
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.p("\n  CORTE")
+    nota_vc(out)
     N, vc = rpm(out, vc, Do, nmax, "18.1")
     f = bloque_rugosidad(out, vc)
     fr = N * f
