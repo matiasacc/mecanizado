@@ -151,7 +151,7 @@ class Salida:
 def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None):
     d = f" [{default}]" if default is not None else ""
     if ayuda:
-        d += " (? = tabla)"
+        d += "  <- escribí ? para ver vc típicas"
     while True:
         s = input(f"  {txt}{d}: ").strip().replace(",", ".")
         if s == "?" and ayuda:
@@ -306,7 +306,7 @@ def planeado(out):
     pos = elegir("Posición de la fresa", {"1": "Centrada (Fig. 18.22a)",
                                           "2": "Desplazada a un lado (Fig. 18.22b)"}, "1")
     a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min]", 200, ayuda=ayuda_sin_tabla)
+    vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 200)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.p("\n  CORTE")
@@ -347,7 +347,7 @@ def periferico(out):
     d = pedir("Profundidad de corte d [mm]", 3)
     L = pedir("Longitud L [mm]", 150)
     a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min]", 30, ayuda=ayuda_sin_tabla)
+    vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 30)
     nmax = pedir_nmax()
     fz = pedir("Avance por diente fz [mm/diente]", 0.1)
     pas = pedir("Cantidad de pasadas", 1)
@@ -371,7 +371,7 @@ def taladrado(out):
     th = pedir("Ángulo de punta θ [°]", 118)
     tipo = elegir("Agujero", {"1": "Pasante", "2": "Ciego"}, "1")
     t = pedir("Espesor t [mm]" if tipo == "1" else "Profundidad a diámetro pleno d [mm]", 20)
-    vc = pedir("vc [m/min]", 25, ayuda=ayuda_sin_tabla)
+    vc = pedir("vc [m/min] (sin tabla cargada, ver catálogo)", 25)
     nmax = pedir_nmax()
     f = pedir("Avance f [mm/rev]", 0.15)
     out.p("\n  CORTE")
