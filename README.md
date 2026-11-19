@@ -20,15 +20,17 @@ C:\Users\matias\mecanizado> python mecanizado.py
 MECANIZADO - tiempos y rugosidad   19/11/2026
 
 ------------------------------------------------------------
+  Pieza actual: Pieza 1      Corridas: 0
   1) Torneado - cilindrado
   2) Torneado - refrentado
   3) Fresado - planeado con placas
   4) Fresado periférico
   5) Taladrado
-  r) Resumen    g) Guardar .txt    q) Salir
+  p) Pieza nueva / cambiar   r) Resumen   e) Eliminar corrida
+  g) Guardar .txt            q) Salir
   > 1
 
-════ TORNEADO - CILINDRADO ═══════════════════════════════════
+════ TORNEADO - CILINDRADO  ·  Pieza 1 ═══════════════════════
   Diámetro inicial Do [mm] [50]: 50
   Diámetro final Df [mm] [46.0]: 40
   Longitud de corte L [mm] [100]: 100
@@ -138,18 +140,21 @@ MECANIZADO - tiempos y rugosidad   19/11/2026
   └──────────────────────────────────────────────────────────────────────────────┘
 
 ------------------------------------------------------------
+  Pieza actual: Pieza 1      Corridas: 1
   1) Torneado - cilindrado
   2) Torneado - refrentado
   3) Fresado - planeado con placas
   4) Fresado periférico
   5) Taladrado
-  r) Resumen    g) Guardar .txt    q) Salir
+  p) Pieza nueva / cambiar   r) Resumen   e) Eliminar corrida
+  g) Guardar .txt            q) Salir
   > r
 
-  ┌─ RESUMEN - tiempo de corte, sin carga/descarga ni cambios ──┐
-  │ 1. Torneado - cilindrado              0.574 min     34.5 s  │
-  │ TOTAL                                 0.574 min     34.5 s  │
-  └─────────────────────────────────────────────────────────────┘
+  ┌─ RESUMEN - tiempo de corte, sin carga/descarga ni cambios ────┐
+  │ Pieza 1                                                       │
+  │    1. Torneado - cilindrado              0.574 min     34.5 s │
+  │       Subtotal Pieza 1                   0.574 min     34.5 s │
+  └───────────────────────────────────────────────────────────────┘
 
   > q
 ```
