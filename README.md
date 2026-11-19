@@ -17,6 +17,9 @@ Cada resultado muestra fórmula, valores reemplazados y fuente.
 - Kalpakjian & Schmid, *Manufacturing Engineering and Technology*, 8ª ed. SI
   - Ec. 21.30 (Rt = f²/8R), sec. 33.3 (definición de Rt)
 
+- Sandvik Coromant, catálogo *Turning tools*, Cutting data p. A278–A281
+  - vc recomendada (escribir `?` en vc de torneado)
+
 ## Supuestos (marcados con * en la salida)
 
 - Fig. 20.2 digitalizada (±0,02). Fuera de rango (≈9–137 m/min) se toma el valor del extremo.

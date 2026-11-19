@@ -8,6 +8,7 @@ Fuentes (todas las formulas llevan su referencia al imprimirse):
   [G] Groover, Principles of Modern Manufacturing, SI Version (WIE), 2016
       Ec. 18.1-18.4 (p.395-396) torneado | 18.7-18.11 (p.404-405) taladrado
       Ec. 18.13-18.20 (p.410-412) fresado | Ec. 20.1 (p.464), 20.2 y Fig. 20.2 (p.465)
+  [S] Sandvik Coromant, catálogo Turning tools, Cutting data p. A278-A281 (vc)
   [K] Kalpakjian & Schmid, Manufacturing Engineering and Technology, 8a ed. SI
       Ec. 21.30 (p.664) Rt = f^2/8R | Def. de Rt, sec. 33.3 (p.1071)
 
@@ -50,6 +51,67 @@ MATERIALES = {"1": ("ductil", "Metales dúctiles (aceros, Al, Cu...)"),
               "2": ("fundicion", "Fundiciones"),
               "3": ("facil", "Aleaciones de fácil mecanizado")}
 
+# ---------------------------------------------------------------------------
+# Sandvik Coromant, catalogo "Turning tools", General Turning - Cutting data,
+# p. A278-A281. vc [m/min] para los 3 avances fn indicados. Con refrigerante.
+# ---------------------------------------------------------------------------
+VC_TORNEADO = [
+    ("ISO P  acero - GC4325", "fn 0,1 / 0,4 / 0,8 mm/rev", [
+        ("01.1", "No aleado C 0,10-0,25 %   125 HB", "510-345-245"),
+        ("01.2", "No aleado C 0,25-0,55 %   150 HB", "455-305-215"),
+        ("01.3", "No aleado C 0,55-0,80 %   170 HB", "425-290-205"),
+        ("02.1", "Baja aleación, sin templar 180 HB", "460-305-215"),
+        ("02.12", "Acero para rodamientos    210 HB", "395-265-190"),
+        ("02.2", "Templado y revenido       275 HB", "255-180-140"),
+        ("02.2", "Templado y revenido       350 HB", "205-145-110"),
+        ("03.11", "Alta aleación, recocido   200 HB", "300-205-150"),
+        ("03.21", "Acero de herramientas templ. 325 HB", "135-95-75"),
+        ("06.1", "Acero fundido no aleado   180 HB", "240-180-130"),
+        ("06.2", "Acero fundido baja aleac. 200 HB", "210-140-100"),
+        ("06.3", "Acero fundido alta aleac. 225 HB", "185-125-90"),
+    ]),
+    ("ISO M  inoxidable - GC2025", "fn 0,2 / 0,4 / 0,6 mm/rev", [
+        ("05.11", "Ferrítico/martensítico    200 HB", "225-175-130"),
+        ("05.12", "Ferr./mart. PH            330 HB", "100-70-45"),
+        ("05.13", "Ferr./mart. templado      330 HB", "115-80-55"),
+        ("05.21", "Austenítico               180 HB", "190-145-110"),
+        ("05.22", "Austenítico PH            330 HB", "100-70-55"),
+        ("05.23", "Superaustenítico          200 HB", "130-100-75"),
+    ]),
+    ("ISO K  fundición - GC3210", "fn 0,2 / 0,4 / 0,6 mm/rev", [
+        ("07.1", "Maleable ferrítica        130 HB", "385-315-265"),
+        ("07.2", "Maleable perlítica        230 HB", "315-255-215"),
+        ("08.1", "Gris, baja resistencia    180 HB", "445-360-305"),
+        ("08.2", "Gris, alta resistencia    220 HB", "355-290-245"),
+        ("09.1", "Nodular ferrítica         160 HB", "360-305-250"),
+        ("09.2", "Nodular perlítica         250 HB", "325-275-225"),
+        ("09.3", "Nodular martensítica      380 HB", "245-210-170"),
+    ]),
+    ("ISO N  no ferrosos - H10", "fn 0,15-0,8 mm/rev (vale para todo el rango)", [
+        ("30.11", "Al forjado, no envejecido  60 HB", "2000 (2500-250)"),
+        ("30.12", "Al forjado, envejecido    100 HB", "2000 (2500-250)"),
+        ("30.41", "Al fundido 13-15 % Si     130 HB", "450 (560-55)"),
+        ("30.42", "Al fundido 16-22 % Si     130 HB", "300 (375-38)"),
+        ("33.1", "Cu de corte libre ≥1 % Pb 110 HB", "500 (630-65)"),
+        ("33.2", "Latón, bronce ≤1 % Pb      90 HB", "500 (630-65)"),
+        ("33.3", "Bronce, Cu electrolítico  100 HB", "300 (375-38)"),
+    ]),
+]
+
+
+def ayuda_vc_torneado():
+    print("\n  vc recomendada [m/min] - Sandvik 'Turning tools', p. A278-A281 (con refrigerante)")
+    for grupo, feeds, filas in VC_TORNEADO:
+        print(f"\n  {grupo}   ({feeds})")
+        for cmc, mat, vc in filas:
+            print(f"    {cmc:<6}{mat:<38}{vc}")
+    print("\n  A mayor avance, menor vc. Otras calidades: ver catálogo.\n")
+
+
+def ayuda_sin_tabla():
+    print("  (sin tabla de vc cargada para esta operación: usar catálogo del fabricante)")
+
+
 SRC_G = "Groover SI 2016"
 SRC_K = "Kalpakjian 8a SI"
 
@@ -86,10 +148,15 @@ class Salida:
         self.p(f"  * {txt}")
 
 
-def pedir(txt, default=None, minimo=0.0, permitir_cero=False):
+def pedir(txt, default=None, minimo=0.0, permitir_cero=False, ayuda=None):
     d = f" [{default}]" if default is not None else ""
+    if ayuda:
+        d += " (? = tabla)"
     while True:
         s = input(f"  {txt}{d}: ").strip().replace(",", ".")
+        if s == "?" and ayuda:
+            ayuda()
+            continue
         if s == "" and default is not None:
             return float(default) if default != "" else None
         try:
@@ -191,8 +258,8 @@ def cilindrado(out):
     out.p("\n=== TORNEADO - CILINDRADO ===")
     D = pedir("Diámetro inicial Do [mm]", 50)
     L = pedir("Longitud de corte L [mm]", 100)
-    a = pedir("Aproximación + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min]", 200)
+    a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
+    vc = pedir("vc [m/min]", 200, ayuda=ayuda_vc_torneado)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.p("\n  CORTE")
@@ -211,8 +278,8 @@ def refrentado(out):
     out.p("\n=== TORNEADO - REFRENTADO (n constante) ===")
     Do = pedir("Diámetro exterior Do [mm]", 50)
     Di = pedir("Diámetro interior Di [mm] (0 = macizo)", 0, permitir_cero=True)
-    a = pedir("Aproximación + salida [mm]", 0, permitir_cero=True)
-    vc = pedir("vc en Do [m/min]", 200)
+    a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
+    vc = pedir("vc en Do [m/min]", 200, ayuda=ayuda_vc_torneado)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.p("\n  CORTE")
@@ -238,8 +305,8 @@ def planeado(out):
     L = pedir("Longitud L [mm]", 150)
     pos = elegir("Posición de la fresa", {"1": "Centrada (Fig. 18.22a)",
                                           "2": "Desplazada a un lado (Fig. 18.22b)"}, "1")
-    a = pedir("Recorrido extra (entrada/salida) [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min]", 200)
+    a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
+    vc = pedir("vc [m/min]", 200, ayuda=ayuda_sin_tabla)
     nmax = pedir_nmax()
     pas = pedir("Cantidad de pasadas", 1)
     out.p("\n  CORTE")
@@ -279,8 +346,8 @@ def periferico(out):
     z = pedir("Número de dientes nt", 6)
     d = pedir("Profundidad de corte d [mm]", 3)
     L = pedir("Longitud L [mm]", 150)
-    a = pedir("Recorrido extra [mm]", 0, permitir_cero=True)
-    vc = pedir("vc [m/min]", 30)
+    a = pedir("Recorrido en vacío, entrada + salida [mm]", 0, permitir_cero=True)
+    vc = pedir("vc [m/min]", 30, ayuda=ayuda_sin_tabla)
     nmax = pedir_nmax()
     fz = pedir("Avance por diente fz [mm/diente]", 0.1)
     pas = pedir("Cantidad de pasadas", 1)
@@ -304,7 +371,7 @@ def taladrado(out):
     th = pedir("Ángulo de punta θ [°]", 118)
     tipo = elegir("Agujero", {"1": "Pasante", "2": "Ciego"}, "1")
     t = pedir("Espesor t [mm]" if tipo == "1" else "Profundidad a diámetro pleno d [mm]", 20)
-    vc = pedir("vc [m/min]", 25)
+    vc = pedir("vc [m/min]", 25, ayuda=ayuda_sin_tabla)
     nmax = pedir_nmax()
     f = pedir("Avance f [mm/rev]", 0.15)
     out.p("\n  CORTE")
